@@ -1,0 +1,17 @@
+name: Publisher Cron
+
+on:
+  schedule:
+    # Runs at 09:00 AM UTC on Monday, Wednesday, and Friday
+    - cron: '0 9 * * 1,3,5'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  ping_publisher:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Publish API
+        run: |
+          curl -X POST "${{ secrets.API_URL }}/api/cron/publish" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          -H "Content-Type: application/json"

@@ -1,0 +1,17 @@
+name: Intelligent Generator Cron
+
+on:
+  schedule:
+    # Runs at 12:00 PM UTC every Friday
+    - cron: '0 12 * * 5'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  ping_generator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Generator API
+        run: |
+          curl -X POST "${{ secrets.API_URL }}/api/cron/generate" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          -H "Content-Type: application/json"
