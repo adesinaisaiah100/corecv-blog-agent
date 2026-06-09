@@ -584,8 +584,7 @@ app.post("/api/cron/publish", async (c) => {
     title: draftToPublish.title,
     content: draftToPublish.content,
     slug: slug,
-    description: description,
-    image_url: "" // Placeholder or you can add AI image generation later
+    description: description
   };
 
   const mainApiUrl = process.env.MAIN_APP_API_URL;
