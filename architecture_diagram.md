@@ -13,39 +13,39 @@ graph TD
     classDef external fill:#ffd6a5,stroke:#fd974f,stroke-width:2px,color:#000
 
     %% Actors & Triggers
-    Human((Human Reviewer)):::human
-    GitHubActions[GitHub Actions / CRON]:::cron
+    Human(("Human Reviewer")):::human
+    GitHubActions["GitHub Actions / CRON"]:::cron
 
     %% Server / Orchestrator
-    subgraph Core Server [Hono / TypeScript Server]
-        Auth[Verify Bearer Token]:::server
-        Admin[Admin Dashboard UI]:::server
-        API_Gen[/api/cron/generate]:::server
-        API_Pub[/api/cron/publish]:::server
-        API_Not[/api/cron/notify]:::server
-        Orchestrator{Task Orchestrator}:::server
+    subgraph Core_Server [Hono / TypeScript Server]
+        Auth["Verify Bearer Token"]:::server
+        Admin["Admin Dashboard UI"]:::server
+        API_Gen["/api/cron/generate"]:::server
+        API_Pub["/api/cron/publish"]:::server
+        API_Not["/api/cron/notify"]:::server
+        Orchestrator{"Task Orchestrator"}:::server
     end
 
     %% Database Layer
     subgraph NeonDB [PostgreSQL Database]
-        DB_Settings[(app_settings)]:::db
-        DB_Topics[(topics)]:::db
-        DB_Blogs[(blogs)]:::db
-        DB_Logs[(agent_logs)]:::db
-        DB_KB[(knowledge_base)]:::db
+        DB_Settings[("app_settings")]:::db
+        DB_Topics[("topics")]:::db
+        DB_Blogs[("blogs")]:::db
+        DB_Logs[("agent_logs")]:::db
+        DB_KB[("knowledge_base")]:::db
     end
 
     %% Agents Layer
-    subgraph AI Agents [LangGraph + Gemini 2.5]
-        Agent_Idea[Idea Generator Agent]:::ai
-        Agent_Revise[Idea Reviser Agent]:::ai
-        Agent_Draft[Drafting Agent]:::ai
+    subgraph AI_Agents [LangGraph + Gemini 2.5]
+        Agent_Idea["Idea Generator Agent"]:::ai
+        Agent_Revise["Idea Reviser Agent"]:::ai
+        Agent_Draft["Drafting Agent"]:::ai
     end
 
     %% External APIs
-    Resend[Resend API]:::external
-    LangSmith[LangSmith Tracing]:::external
-    MainAppAPI[Main App API / CMS]:::external
+    Resend["Resend API"]:::external
+    LangSmith["LangSmith Tracing"]:::external
+    MainAppAPI["Main App API / CMS"]:::external
 
     %% --- CONNECTIONS ---
 
@@ -84,6 +84,6 @@ graph TD
     API_Pub -- "POST Draft" --> MainAppAPI
 
     %% 5. Global Logging
-    AI Agents -. "Automatic Telemetry" .-> LangSmith
+    AI_Agents -. "Automatic Telemetry" .-> LangSmith
     Orchestrator -- "Write execution logs" --> DB_Logs
 ```
