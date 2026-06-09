@@ -1,69 +1,89 @@
-# CoreCV Blog Agent Architecture
+# CoreCV Blog Agent Architecture (Final)
 
-This diagram illustrates the complete, updated architecture we designed. It highlights the GitHub Actions scheduling, the Railway/Hono backend, the Neon database, the LangGraph + Gemini agent interactions, and the Magic Link human review process.
+Below is the complete, high-level Mermaid flowchart depicting the entire autonomous system we built across Phases 1, 2, and 3.
 
 ```mermaid
 graph TD
-    %% Styling
-    classDef trigger fill:#3C3489,stroke:#AFA9EC,color:#fff
-    classDef server fill:#444441,stroke:#B4B2A9,color:#fff
-    classDef db fill:#712B13,stroke:#F0997B,color:#fff
-    classDef agent fill:#085041,stroke:#5DCAA5,color:#fff
-    classDef external fill:#0C447C,stroke:#85B7EB,color:#fff
-    classDef user fill:#633806,stroke:#EF9F27,color:#fff
+    %% Define Styles
+    classDef human fill:#ffccd5,stroke:#ff4d6d,stroke-width:2px,color:#000
+    classDef cron fill:#caf0f8,stroke:#0077b6,stroke-width:2px,color:#000
+    classDef server fill:#d8f3dc,stroke:#2d6a4f,stroke-width:2px,color:#000
+    classDef db fill:#fcf6bd,stroke:#d4a373,stroke-width:2px,color:#000
+    classDef ai fill:#e0c3fc,stroke:#7b2cbf,stroke-width:2px,color:#000
+    classDef external fill:#ffd6a5,stroke:#fd974f,stroke-width:2px,color:#000
 
-    %% Components
-    subgraph Scheduling
-        Cron["GitHub Actions<br/>(Cron Triggers)"]:::trigger
+    %% Actors & Triggers
+    Human((Human Reviewer)):::human
+    GitHubActions[GitHub Actions / CRON]:::cron
+
+    %% Server / Orchestrator
+    subgraph Core Server [Hono / TypeScript Server]
+        Auth[Verify Bearer Token]:::server
+        Admin[Admin Dashboard UI]:::server
+        API_Gen[/api/cron/generate]:::server
+        API_Pub[/api/cron/publish]:::server
+        API_Not[/api/cron/notify]:::server
+        Orchestrator{Task Orchestrator}:::server
     end
 
-    subgraph Hosting [Railway Container - Node.js]
-        Hono["Hono API Server"]:::server
-        Agent["LangGraph + Gemini<br/>(AI Agents)"]:::agent
+    %% Database Layer
+    subgraph NeonDB [PostgreSQL Database]
+        DB_Settings[(app_settings)]:::db
+        DB_Topics[(topics)]:::db
+        DB_Blogs[(blogs)]:::db
+        DB_Logs[(agent_logs)]:::db
+        DB_KB[(knowledge_base)]:::db
     end
 
-    subgraph Storage
-        DB[("Neon PostgreSQL<br/>(via Drizzle ORM)")]:::db
+    %% Agents Layer
+    subgraph AI Agents [LangGraph + Gemini 2.5]
+        Agent_Idea[Idea Generator Agent]:::ai
+        Agent_Revise[Idea Reviser Agent]:::ai
+        Agent_Draft[Drafting Agent]:::ai
     end
 
-    subgraph External Services
-        Resend["Resend<br/>(Email API)"]:::external
-        Tavily["Tavily<br/>(Search API)"]:::external
-        CoreCV["CoreCV Website<br/>(Vercel / Next.js)"]:::external
-    end
+    %% External APIs
+    Resend[Resend API]:::external
+    LangSmith[LangSmith Tracing]:::external
+    MainAppAPI[Main App API / CMS]:::external
 
-    subgraph Human Review
-        Inbox["User Email Inbox"]:::user
-        Browser["Magic Link Webpage<br/>(Served by Hono)"]:::user
-    end
+    %% --- CONNECTIONS ---
 
-    %% Flows
-    %% 1. Topic Generation
-    Cron -- "1. POST /generate-topics" --> Hono
-    Hono -- "2. Triggers" --> Agent
-    Agent -- "3. Read Global Rules" --> DB
-    Agent -- "4. Save Topics" --> DB
-    Agent -- "5. Send Email with URL" --> Resend
-    Resend -- "6. Delivers Email" --> Inbox
+    %% 1. Notification Flow (Daily)
+    GitHubActions -- "cron-notify.yml (9AM, 5PM)" --> Auth
+    Auth --> API_Not
+    API_Not -- "Count pending drafts & ideas" --> NeonDB
+    API_Not -- "Send HTML Digest" --> Resend
+    Resend -- "Email Alert" --> Human
 
-    %% 2. Magic Link Review
-    Inbox -- "7. Clicks Magic Link" --> Browser
-    Browser -- "8. GET /review/..." --> Hono
-    Hono -. "Fetches Content" .-> DB
-    Hono -- "9. Returns HTML Page" --> Browser
-    Browser -- "10. Clicks [Approve]" --> Hono
-    Hono -- "11. UPDATE status = 'approved'" --> DB
+    %% 2. Generation Flow (Friday)
+    GitHubActions -- "cron-generate.yml (Fri 12PM)" --> Auth
+    Auth --> API_Gen
+    API_Gen -- "Buffer Math < Target" --> DB_Topics
+    API_Gen --> Orchestrator
+    Orchestrator -- "Trigger" --> Agent_Idea
+    Agent_Idea -- "Read Playbooks & Settings" --> NeonDB
+    Agent_Idea -- "Write new Ideas" --> DB_Topics
 
-    %% 3. Draft Generation
-    Cron -- "12. POST /generate-drafts" --> Hono
-    Hono -- "13. Triggers" --> Agent
-    Agent -- "14. Research" --> Tavily
-    Agent -- "15. Writes & Saves Draft" --> DB
-    Agent -- "16. Send Magic Link" --> Resend
+    %% 3. Human Review Flow
+    Human -- "Clicks Admin Dashboard URL" --> Admin
+    Admin -- "Updates LLM Settings" --> DB_Settings
+    Admin -- "Approves Idea" --> Orchestrator
+    Admin -- "Rejects Idea + Feedback" --> Orchestrator
+    
+    Orchestrator -- "Trigger Draft" --> Agent_Draft
+    Orchestrator -- "Trigger Revision" --> Agent_Revise
+    
+    Agent_Draft -- "Writes Full Blog" --> DB_Blogs
+    Agent_Revise -- "Updates Idea" --> DB_Topics
 
-    %% 4. Publishing Queue
-    Cron -- "17. POST /publish" --> Hono
-    Hono -- "18. Fetch oldest 'approved_for_publishing'" --> DB
-    Hono -- "19. POST New Blog" --> CoreCV
-    Hono -- "20. UPDATE status = 'published'" --> DB
+    %% 4. Publishing Flow (MWF)
+    GitHubActions -- "cron-publish.yml (Mon/Wed/Fri 9AM)" --> Auth
+    Auth --> API_Pub
+    API_Pub -- "Fetch Approved Drafts" --> DB_Blogs
+    API_Pub -- "POST Draft" --> MainAppAPI
+
+    %% 5. Global Logging
+    AI Agents -. "Automatic Telemetry" .-> LangSmith
+    Orchestrator -- "Write execution logs" --> DB_Logs
 ```
