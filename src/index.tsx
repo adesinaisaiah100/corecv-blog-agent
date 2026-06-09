@@ -569,8 +569,53 @@ app.post("/api/cron/publish", async (c) => {
   const draftToPublish = publishableDrafts[0];
 
   console.log(`[Cron] Publishing draft: ${draftToPublish.title}...`);
-  // TODO: Send to Main App API here!
-  console.log("-> Sent to Main App API");
+
+  // Generate dynamic fields for the CMS payload
+  const slug = draftToPublish.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+  
+  // Extract a short description from the content (strip markdown/html lightly and grab 150 chars)
+  const cleanContent = draftToPublish.content.replace(/#|\*|_|`|<[^>]+>/g, '').trim();
+  const description = cleanContent.length > 150 ? cleanContent.substring(0, 150) + '...' : cleanContent;
+  
+  const payload = {
+    title: draftToPublish.title,
+    content: draftToPublish.content,
+    slug: slug,
+    description: description,
+    image_url: "" // Placeholder or you can add AI image generation later
+  };
+
+  const mainApiUrl = process.env.MAIN_APP_API_URL;
+  const mainApiKey = process.env.MAIN_APP_API_KEY;
+
+  if (mainApiUrl && mainApiKey) {
+    try {
+      const response = await fetch(mainApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": mainApiKey
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Cron] Main App API Error (${response.status}):`, errorText);
+        return c.json({ error: "Failed to post to Main App", details: errorText }, 500);
+      }
+      
+      console.log("-> Successfully sent to Main App API");
+    } catch (err) {
+      console.error("[Cron] Network error posting to Main App:", err);
+      return c.json({ error: "Network error posting to Main App" }, 500);
+    }
+  } else {
+    console.log("-> Skipped API Post (MAIN_APP_API_URL or MAIN_APP_API_KEY missing)");
+  }
 
   // Update DB
   await db.update(blogs).set({ status: "published" }).where(eq(blogs.id, draftToPublish.id));
