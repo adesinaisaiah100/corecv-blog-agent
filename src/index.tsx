@@ -652,6 +652,8 @@ app.post("/api/cron/notify", async (c) => {
     return c.json({ error: "EMAIL_TO not configured" }, 500);
   }
 
+  const dashboardUrl = process.env.DASHBOARD_URL || "http://localhost:3000";
+
   // Format the email
   const subject = `CoreCV AI Digest: ${draftsCount} Drafts & ${ideasCount} Ideas Waiting`;
   const htmlContent = `
@@ -662,6 +664,8 @@ app.post("/api/cron/notify", async (c) => {
       <li><strong>Ideas awaiting review:</strong> ${ideasCount}</li>
     </ul>
     <p>Please log in to your CoreCV Agent Dashboard to approve or revise them.</p>
+    <br/>
+    <a href="${dashboardUrl}/review/topics" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-family: sans-serif;">Review Ideas & Drafts</a>
   `;
 
   console.log(`[Cron] Sending digest email to ${toEmail}...`);
