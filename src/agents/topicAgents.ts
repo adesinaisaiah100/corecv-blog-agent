@@ -63,7 +63,7 @@ Return everything you found as a structured list of signals. You are not generat
 
     // Create a specific LLM just for searching, natively bound to Google Search!
     const searchLlm = new ChatGoogle({
-      model: state.settings.modelSelection || "gemini-2.5-flash",
+      model: state.settings.modelSelection || "gemini-2.5-flash-lite",
       temperature: 0.2,
     }).bindTools([{ googleSearch: {} }]);
 
@@ -99,7 +99,7 @@ async function generateIdeas(state: typeof AgentState.State) {
   });
 
   const creativeLlm = new ChatGoogle({
-    model: state.settings.modelSelection || "gemini-2.5-flash",
+    model: state.settings.modelSelection || "gemini-2.5-flash-lite",
     temperature: state.settings.creativeTemperature || 0.7,
   });
 
@@ -158,7 +158,7 @@ async function pickTopThree(state: typeof AgentState.State) {
   });
 
   const analyticalLlm = new ChatGoogle({
-    model: state.settings.modelSelection || "gemini-2.5-flash",
+    model: state.settings.modelSelection || "gemini-2.5-flash-lite",
     temperature: 0.2, // always analytical for scoring
   });
 

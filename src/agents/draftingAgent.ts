@@ -111,7 +111,7 @@ Please provide the completely revised draft now.`;
   }
 
   const drafterLlm = new ChatGoogle({
-    model: state.settings.modelSelection || "gemini-2.5-pro", 
+    model: state.settings.modelSelection || "gemini-2.5-flash-lite", 
     temperature: state.settings.creativeTemperature || 0.6,
   }).bindTools([{ googleSearch: {} }]);
 
@@ -151,7 +151,7 @@ async function reviewDraft(state: typeof DraftingState.State) {
   });
 
   const reviewerLlm = new ChatGoogle({
-    model: state.settings.modelSelection || "gemini-2.5-flash",
+    model: state.settings.modelSelection || "gemini-2.5-flash-lite",
     temperature: 0.1, // always analytical for reviewing
   });
 

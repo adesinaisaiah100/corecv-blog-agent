@@ -73,7 +73,7 @@ async function reviseIdea(state: typeof ReviseState.State) {
   });
 
   const analyticalLlm = new ChatGoogle({
-    model: state.settings.modelSelection || "gemini-2.5-flash",
+    model: state.settings.modelSelection || "gemini-2.5-flash-lite",
     temperature: 0.3,
   });
 

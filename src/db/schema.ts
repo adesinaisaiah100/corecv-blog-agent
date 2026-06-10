@@ -50,7 +50,7 @@ export const appSettings = pgTable("app_settings", {
   autoPublishDrafts: boolean("auto_publish_drafts").notNull().default(false),
   targetBuffer: integer("target_buffer").notNull().default(6),
   ideasPerGeneration: integer("ideas_per_generation").notNull().default(3),
-  modelSelection: text("model_selection").notNull().default("gemini-2.5-flash"),
+  modelSelection: text("model_selection").notNull().default("gemini-2.5-flash-lite"),
   creativeTemperature: real("creative_temperature").notNull().default(0.7),
   draftTargetLength: integer("draft_target_length").notNull().default(1500),
   researchDepth: integer("research_depth").notNull().default(5),
