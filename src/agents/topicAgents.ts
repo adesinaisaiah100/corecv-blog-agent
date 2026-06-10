@@ -1,5 +1,6 @@
 import { StateGraph, Annotation } from "@langchain/langgraph";
 import { ChatGoogle } from "@langchain/google";
+import { createResilientLlm } from "../utils/resilientLlm.js";
 import { z } from "zod";
 import { db } from "../db/index.js";
 import { HumanMessage } from "@langchain/core/messages";
@@ -62,10 +63,11 @@ For each signal you find, record: what it is, where you found it, the year it is
 Return everything you found as a structured list of signals. You are not generating ideas yet. You are collecting raw material.`;
 
     // Create a specific LLM just for searching, natively bound to Google Search!
-    const searchLlm = new ChatGoogle({
-      model: state.settings.modelSelection || "gemini-2.5-flash-lite",
+    const searchLlm = createResilientLlm({
+      model: state.settings.modelSelection,
       temperature: 0.2,
-    }).bindTools([{ googleSearch: {} }]);
+      tools: [{ googleSearch: {} }]
+    });
 
     let allResults = "";
     // Loop based on researchDepth setting
@@ -98,12 +100,11 @@ async function generateIdeas(state: typeof AgentState.State) {
     })).length(12)
   });
 
-  const creativeLlm = new ChatGoogle({
-    model: state.settings.modelSelection || "gemini-2.5-flash-lite",
+  const structuredLlm = createResilientLlm({
+    model: state.settings.modelSelection,
     temperature: state.settings.creativeTemperature || 0.7,
+    structuredOutputSchema: IdeaSchema
   });
-
-  const structuredLlm = creativeLlm.withStructuredOutput(IdeaSchema);
 
   const prompt = `You are the CoreCV Idea Agent. You have two inputs: the CoreCV brand playbook, which defines who CoreCV is, what features it has, and what the blog is trying to accomplish — and a set of fresh research signals you just retrieved from real sources.
 
@@ -157,12 +158,11 @@ async function pickTopThree(state: typeof AgentState.State) {
     })).length(3)
   });
 
-  const analyticalLlm = new ChatGoogle({
-    model: state.settings.modelSelection || "gemini-2.5-flash-lite",
+  const structuredLlm = createResilientLlm({
+    model: state.settings.modelSelection,
     temperature: 0.2, // always analytical for scoring
+    structuredOutputSchema: BriefSchema
   });
-
-  const structuredLlm = analyticalLlm.withStructuredOutput(BriefSchema);
 
   const prompt = `You are the CoreCV Idea Agent. You have generated 12 blog topic ideas. Your task now is to score each one using the five-dimension rubric below and select the top three.
 
@@ -192,7 +192,7 @@ ${JSON.stringify(state.rawIdeas, null, 2)}`;
 
   const response = await structuredLlm.invoke(prompt);
 
-  const finalWithScores = response.top3.map(topic => {
+  const finalWithScores = response.top3.map((topic: any) => {
     const scores = topic.scoreBreakdown;
     const weightedTotal = 
       (scores.trendMomentum * 0.15) +

@@ -1,5 +1,6 @@
 import { StateGraph, Annotation, END } from "@langchain/langgraph";
 import { ChatGoogle } from "@langchain/google";
+import { createResilientLlm } from "../utils/resilientLlm.js";
 import { z } from "zod";
 import { db } from "../db/index.js";
 import { topics } from "../db/schema.js";
@@ -72,12 +73,11 @@ async function reviseIdea(state: typeof ReviseState.State) {
     })
   });
 
-  const analyticalLlm = new ChatGoogle({
-    model: state.settings.modelSelection || "gemini-2.5-flash-lite",
+  const structuredLlm = createResilientLlm({
+    model: state.settings.modelSelection,
     temperature: 0.3,
+    structuredOutputSchema: SingleBriefSchema
   });
-
-  const structuredLlm = analyticalLlm.withStructuredOutput(SingleBriefSchema);
 
   const prompt = `You are the CoreCV Idea Agent. A human editor rejected your previous blog topic idea and left specific feedback.
 Your task is to rewrite the idea entirely to address their feedback, while still strictly adhering to the CoreCV Playbook.

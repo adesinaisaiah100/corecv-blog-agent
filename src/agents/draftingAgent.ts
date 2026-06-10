@@ -1,5 +1,6 @@
 import { StateGraph, Annotation, END } from "@langchain/langgraph";
 import { ChatGoogle } from "@langchain/google";
+import { createResilientLlm } from "../utils/resilientLlm.js";
 import { z } from "zod";
 import { db } from "../db/index.js";
 import { blogs, topics } from "../db/schema.js";
@@ -110,10 +111,11 @@ Please provide the completely revised draft now.`;
     prompt += `\n\nPlease write the first draft now.`;
   }
 
-  const drafterLlm = new ChatGoogle({
-    model: state.settings.modelSelection || "gemini-2.5-flash-lite", 
+  const drafterLlm = createResilientLlm({
+    model: state.settings.modelSelection,
     temperature: state.settings.creativeTemperature || 0.6,
-  }).bindTools([{ googleSearch: {} }]);
+    tools: [{ googleSearch: {} }]
+  });
 
   const response = await drafterLlm.invoke([new HumanMessage(prompt)]);
 
@@ -150,12 +152,11 @@ async function reviewDraft(state: typeof DraftingState.State) {
     feedback: z.string().describe("Actionable feedback naming the EXACT checklist items that failed and how to fix them. Empty if approved.")
   });
 
-  const reviewerLlm = new ChatGoogle({
-    model: state.settings.modelSelection || "gemini-2.5-flash-lite",
+  const structuredReviewer = createResilientLlm({
+    model: state.settings.modelSelection,
     temperature: 0.1, // always analytical for reviewing
+    structuredOutputSchema: ReviewSchema
   });
-
-  const structuredReviewer = reviewerLlm.withStructuredOutput(ReviewSchema);
 
   const prompt = `You are the CoreCV Editor-in-Chief. Evaluate the following blog post draft against the strict 13-point checklist.
 
