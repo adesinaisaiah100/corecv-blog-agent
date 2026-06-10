@@ -664,8 +664,8 @@ app.post("/api/cron/notify", async (c) => {
       <li><strong>Ideas awaiting review:</strong> ${ideasCount}</li>
     </ul>
     <p>Please log in to your CoreCV Agent Dashboard to approve or revise them.</p>
-    <br/>
-    <a href="${dashboardUrl}/review/topics" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-family: sans-serif;">Review Ideas & Drafts</a>
+    ${ideasCount > 0 ? `<a href="${dashboardUrl}/review/topics" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-family: sans-serif; margin-right: 12px; margin-bottom: 12px;">Review Ideas</a>` : ''}
+    ${draftsCount > 0 ? `<a href="${dashboardUrl}/review/drafts" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-family: sans-serif; margin-bottom: 12px;">Review Drafts</a>` : ''}
   `;
 
   console.log(`[Cron] Sending digest email to ${toEmail}...`);
